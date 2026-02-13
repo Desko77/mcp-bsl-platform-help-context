@@ -16,7 +16,7 @@ Python-порт [mcp-bsl-platform-context](https://github.com/alkoleft/mcp-bsl-p
 - **Детальная информация** о функциях, методах, свойствах, конструкторах
 - **Навигация по объектной модели** платформы
 - **Два источника данных**: прямое чтение HBK файлов или pre-exported JSON
-- **Два транспорта**: STDIO (для Claude Desktop, Cursor) и SSE (HTTP)
+- **Три транспорта**: STDIO (для Claude Desktop, Cursor), SSE и Streamable HTTP
 
 ## MCP-инструменты
 
@@ -60,8 +60,8 @@ mcp-bsl-context -p /path --data-source json --json-path /path/to/json
 
 ```
 --platform-path, -p    Путь к каталогу установки 1С (обязателен для hbk)
---mode, -m             Транспорт: stdio (по умолчанию) или sse
---port                 Порт для SSE-сервера (по умолчанию: 8080)
+--mode, -m             Транспорт: stdio (по умолчанию), sse или streamable-http
+--port                 Порт для HTTP-сервера (по умолчанию: 8080)
 --data-source          Источник данных: hbk или json
 --json-path            Путь к каталогу с JSON-файлами
 --verbose, -v          Включить отладочное логирование
@@ -116,6 +116,12 @@ mcp-bsl-context -p /path --data-source json --json-path /path/to/json
 
 ```bash
 mcp-bsl-context -p /opt/1cv8/x86_64/8.3.25.1257 -m sse --port 8080
+```
+
+### Streamable HTTP (рекомендуется для новых интеграций)
+
+```bash
+mcp-bsl-context -p /opt/1cv8/x86_64/8.3.25.1257 -m streamable-http --port 8080
 ```
 
 ## Docker
