@@ -1,0 +1,52 @@
+[build-system]
+requires = ["setuptools>=60.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "mcp-bsl-platform-help-context"
+version = "0.1.0"
+description = "MCP server for 1C:Enterprise BSL platform context — search and navigate platform API documentation"
+requires-python = ">=3.10"
+license = {text = "MIT"}
+authors = [
+    {name = "Alexander Kazantsev"},
+]
+keywords = ["mcp", "1c", "bsl", "platform", "context", "ai"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Software Development :: Documentation",
+]
+dependencies = [
+    "fastmcp>=2.0,<3",
+    "beautifulsoup4>=4.12.0",
+    "lxml>=5.0.0",
+    "click>=8.1.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0.0",
+    "pytest-cov>=5.0.0",
+]
+
+[project.scripts]
+mcp-bsl-context = "mcp_bsl_context.__main__:main"
+
+[project.urls]
+Homepage = "https://github.com/Desko77/mcp-bsl-platform-help-context"
+Repository = "https://github.com/Desko77/mcp-bsl-platform-help-context"
+Issues = "https://github.com/Desko77/mcp-bsl-platform-help-context/issues"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["mcp_bsl_context*"]
+namespaces = false
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
