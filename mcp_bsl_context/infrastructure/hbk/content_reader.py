@@ -27,8 +27,8 @@ class HbkContext:
         if not path:
             return None
         try:
-            # Normalize path separators
-            normalized = path.replace("\\", "/")
+            # Normalize path separators and strip leading slash
+            normalized = path.replace("\\", "/").lstrip("/")
             if self._name_set is None:
                 self._name_set = set(self._zip.namelist())
 

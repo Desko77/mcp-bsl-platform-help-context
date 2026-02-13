@@ -121,7 +121,11 @@ def main() -> None:
         if app_config.server.mode == "stdio":
             server.run(transport="stdio")
         else:
-            server.run(transport=app_config.server.mode, port=app_config.server.port)
+            server.run(
+                transport=app_config.server.mode,
+                host=app_config.server.host,
+                port=app_config.server.port,
+            )
 
     cli()
 

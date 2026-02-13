@@ -67,15 +67,18 @@ class Toc:
                     child_page.parent = page
                     page.children.append(child_page)
 
-        # Find root (page with parent_id == 0 or the first page without a parent)
-        root = None
-        for chunk in chunks:
-            page = page_map[chunk.id]
-            if page.parent is None:
-                root = page
-                break
+        # Find all root pages (pages without a parent)
+        roots = [page_map[c.id] for c in chunks if page_map[c.id].parent is None]
 
-        if root is None:
+        if len(roots) == 1:
+            root = roots[0]
+        elif roots:
+            # Multiple roots — create a virtual root containing all of them
+            root = Page(id=0, name_ru="root")
+            for r in roots:
+                r.parent = root
+                root.children.append(r)
+        else:
             root = Page(id=0, name_ru="root")
 
         logger.debug("TOC tree built: %d pages", len(page_map))

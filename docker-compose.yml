@@ -18,6 +18,7 @@ services:
       - "8080:8080"
     environment:
       MCP_BSL_MODE: streamable-http
+      MCP_BSL_HOST: "0.0.0.0"
       MCP_BSL_PORT: "8080"
       MCP_BSL_DATA_SOURCE: hbk
       MCP_BSL_PLATFORM_PATH: /data/platform
@@ -59,6 +60,7 @@ services:
       - "8080:8080"
     environment:
       MCP_BSL_MODE: streamable-http
+      MCP_BSL_HOST: "0.0.0.0"
       MCP_BSL_PORT: "8080"
       MCP_BSL_DATA_SOURCE: hbk
       MCP_BSL_PLATFORM_PATH: /data/platform
@@ -100,6 +102,7 @@ services:
       - "8080:8080"
     environment:
       MCP_BSL_MODE: streamable-http
+      MCP_BSL_HOST: "0.0.0.0"
       MCP_BSL_PORT: "8080"
       MCP_BSL_DATA_SOURCE: json
       MCP_BSL_PLATFORM_PATH: /data/platform

@@ -99,6 +99,16 @@ def parse_html_page(html: str) -> ParsedPage:
         if not text:
             continue
 
+        # V8SH_heading contains the name directly — emit as "name" block with text as content
+        if _has_css_class(element, "V8SH_heading"):
+            if current_block is not None:
+                current_block.content = "\n".join(content_parts).strip()
+                page.blocks.append(current_block)
+                content_parts.clear()
+            current_block = None
+            page.blocks.append(ParsedBlock(title="name", block_type="name", content=text))
+            continue
+
         # Check if this element is a block title
         block_type = _detect_block_title(element, text)
         if block_type is not None:
@@ -139,9 +149,12 @@ def parse_html_page(html: str) -> ParsedPage:
 
 def _detect_block_title(element: Tag, text: str) -> str | None:  # type: ignore[name-defined]
     """Detect if an element is a block title and return its type."""
+    # Normalize: strip trailing colon for matching (e.g. "Синтаксис:" -> "Синтаксис")
+    normalized = text.rstrip(":").strip()
+
     # Check heading tags
     if element.name in ("h1", "h2", "h3", "h4"):
-        return BLOCK_TITLES.get(text, "unknown")
+        return BLOCK_TITLES.get(normalized, "unknown")
 
     # Check paragraph with specific CSS classes used in 1C docs
     if element.name == "p":
@@ -151,16 +164,30 @@ def _detect_block_title(element: Tag, text: str) -> str | None:  # type: ignore[
         else:
             class_str = str(css_class)
 
+        # V8SH_chapter — section titles (Синтаксис, Параметры, etc.)
+        if "V8SH_chapter" in class_str:
+            return BLOCK_TITLES.get(normalized, "unknown")
+
         if "head" in class_str or "title" in class_str:
-            return BLOCK_TITLES.get(text, "unknown")
+            return BLOCK_TITLES.get(normalized, "unknown")
 
     # Check bold text that matches known block titles
     if element.name in ("p", "div"):
         bold = element.find(["b", "strong"])
         if bold and bold.get_text(strip=True) == text:
-            return BLOCK_TITLES.get(text)
+            return BLOCK_TITLES.get(normalized)
 
     return None
+
+
+def _has_css_class(element: Tag, cls: str) -> bool:  # type: ignore[name-defined]
+    """Check if an element has a specific CSS class."""
+    if element.name != "p":
+        return False
+    css_class = element.get("class", [])
+    if isinstance(css_class, list):
+        return cls in css_class
+    return cls in str(css_class)
 
 
 def _parse_table(table: Tag) -> str:  # type: ignore[name-defined]

@@ -168,8 +168,17 @@ class PlatformContextPagesVisitor:
         return constructors
 
     def _visit_type_catalog(self, page: Page) -> Iterator[ObjectInfo]:
-        """Visit a type catalog and parse each type with its members."""
+        """Visit a type catalog and parse each type with its members.
+
+        Recurses into sub-catalogs (children that have their own children
+        with methods/properties but are not themselves type pages).
+        """
         for type_page in page.children:
+            # Check if this is a sub-catalog (has children that are types, not members)
+            if self._is_subcatalog(type_page):
+                yield from self._visit_type_catalog(type_page)
+                continue
+
             html = self._ctx.read_page(type_page.path)
             if html is None:
                 continue
@@ -194,6 +203,18 @@ class PlatformContextPagesVisitor:
                 yield obj
             except Exception as e:
                 logger.warning("Failed to parse type page '%s': %s", type_page.path, e)
+
+    def _is_subcatalog(self, page: Page) -> bool:
+        """Check if a page is a sub-catalog containing type pages (not a type itself)."""
+        if not page.children:
+            return False
+        # A sub-catalog has children that themselves have children
+        # (types have methods/properties children; sub-catalogs have type children)
+        for child in page.children:
+            child_type = self._classify_page(child)
+            if child_type in (PageType.METHODS, PageType.PROPERTIES, PageType.CONSTRUCTORS):
+                return False  # This page IS a type (has member sections)
+        return len(page.children) > 0 and any(c.children for c in page.children)
 
     def _visit_enum_catalog(self, page: Page) -> Iterator[EnumInfo]:
         """Visit an enum catalog and parse each enum."""

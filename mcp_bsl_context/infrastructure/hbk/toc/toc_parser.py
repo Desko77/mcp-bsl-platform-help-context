@@ -34,6 +34,13 @@ class TokenIterator:
             raise ValueError(f"Expected '{expected}', got '{token}' at position {self._pos - 1}")
 
 
+def _strip_quotes(s: str) -> str:
+    """Strip surrounding double quotes from a token."""
+    if s.startswith('"') and s.endswith('"'):
+        return s[1:-1]
+    return s
+
+
 def parse_content(data: bytes) -> list[Chunk]:
     """Parse TOC bracket file content into chunks."""
     content = data.decode("utf-8")
@@ -140,17 +147,12 @@ def _parse_name_containers(it: TokenIterator, chunk: Chunk) -> None:
         # Parse language entries
         while it.has_next() and it.peek() == "{":
             it.expect("{")
-            lang_code = it.next()
-            name_token = it.next()
-            # Strip quotes from name
-            if name_token.startswith('"') and name_token.endswith('"'):
-                name_value = name_token[1:-1]
-            else:
-                name_value = name_token
+            lang_code = _strip_quotes(it.next())
+            name_value = _strip_quotes(it.next())
 
-            if lang_code == "1":  # Russian
+            if lang_code in ("1", "ru", "#"):  # Russian (# = section headers)
                 name.ru = name_value
-            elif lang_code == "2":  # English
+            elif lang_code in ("2", "en"):  # English
                 name.en = name_value
 
             it.expect("}")

@@ -14,6 +14,7 @@ logger = logging.getLogger(__name__)
 @dataclass
 class ServerConfig:
     mode: str = "stdio"
+    host: str = "127.0.0.1"
     port: int = 8080
     verbose: bool = False
 
@@ -76,6 +77,7 @@ _ENV_MAPPING: dict[str, tuple[str, str]] = {
     "MCP_BSL_PLATFORM_PATH": ("platform", "path"),
     "MCP_BSL_PLATFORM_VERSION": ("platform", "version"),
     "MCP_BSL_MODE": ("server", "mode"),
+    "MCP_BSL_HOST": ("server", "host"),
     "MCP_BSL_PORT": ("server", "port"),
     "MCP_BSL_DATA_SOURCE": ("platform", "data_source"),
     "MCP_BSL_JSON_PATH": ("platform", "json_path"),

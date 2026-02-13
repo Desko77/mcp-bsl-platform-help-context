@@ -91,17 +91,40 @@ class HbkContainerReader:
         return name_bytes.decode("utf-16-le").rstrip("\x00")
 
     def _get_file_body(self, data: bytes, body_addr: int) -> bytes:
-        """Extract file body from a body address."""
-        pos = body_addr
+        """Extract file body from a body address, following page chains."""
+        data_size, page_size, next_page, page_data_start = self._parse_block_header(data, body_addr)
 
-        # Skip 2 bytes
-        pos += 2
+        # Single-page entry: data fits in one page
+        if next_page == 0x7FFFFFFF:
+            return data[page_data_start : page_data_start + data_size]
 
-        # Read payload_size: 8-byte ASCII hex + 1 separator byte
-        payload_size = int(data[pos : pos + 8].decode("ascii"), 16)
+        # Multi-page entry: follow the chain and concatenate
+        result = bytearray()
+        remaining = data_size
+        current_start = page_data_start
+        current_page_size = page_size
+        current_next = next_page
+
+        while remaining > 0:
+            chunk_size = min(current_page_size, remaining)
+            result.extend(data[current_start : current_start + chunk_size])
+            remaining -= chunk_size
+
+            if remaining <= 0 or current_next == 0x7FFFFFFF:
+                break
+
+            _, current_page_size, current_next, current_start = self._parse_block_header(data, current_next)
+
+        return bytes(result)
+
+    @staticmethod
+    def _parse_block_header(data: bytes, addr: int) -> tuple[int, int, int, int]:
+        """Parse a block header and return (data_size, page_size, next_page, data_start)."""
+        pos = addr + 2  # skip CRLF
+        data_size = int(data[pos : pos + 8].decode("ascii"), 16)
         pos += 9
-
-        # Skip 20 bytes of header fields
-        pos += 20
-
-        return data[pos : pos + payload_size]
+        page_size = int(data[pos : pos + 8].decode("ascii"), 16)
+        pos += 9
+        next_page = int(data[pos : pos + 8].decode("ascii"), 16)
+        pos += 11  # field (8) + space (1) + CRLF (2)
+        return data_size, page_size, next_page, pos
