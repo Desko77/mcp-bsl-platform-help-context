@@ -9,3 +9,5 @@ build/
 .venv/
 venv/
 *.egg
+.claude/
+data/

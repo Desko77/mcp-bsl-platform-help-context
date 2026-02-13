@@ -1,0 +1,54 @@
+# MCP BSL Platform Help Context — configuration file
+# Copy to config.yml and adjust for your environment.
+# All settings can be overridden via env vars (MCP_BSL_*) or CLI arguments.
+
+server:
+  mode: streamable-http       # stdio | sse | streamable-http
+  port: 8080
+  verbose: false
+
+platform:
+  # Path to 1C platform installation directory.
+  # Can point to a specific version dir (8.3.25.1257/) or a parent with multiple versions.
+  # Linux:   /opt/1cv8/x86_64
+  # Windows: C:/Program Files/1cv8
+  path: "C:/Program Files/1cv8"
+
+  # Preferred platform version. null = auto-select latest available.
+  # If the exact version is not available, the closest match is used.
+  version: null
+
+  data_source: hbk             # hbk | json
+  json_path: null              # required when data_source=json
+
+search:
+  default_mode: hybrid         # hybrid | semantic | keyword
+
+# Embedding model for semantic search
+embeddings:
+  provider: local              # local | openai-compatible
+  model: ai-forever/ru-en-RoSBERTa
+
+  # For API providers (OpenRouter, LM Studio, etc.):
+  # api_url: http://localhost:1234/v1
+  # api_key: your-api-key
+  api_url: null
+  api_key: null
+
+# Cross-encoder reranker
+reranker:
+  enabled: true
+  provider: local              # local | openai-compatible
+  model: DiTy/cross-encoder-russian-msmarco
+  api_url: null
+  api_key: null
+
+# Persistent storage paths (mounted as volumes in Docker)
+storage:
+  qdrant_path: ./data/qdrant   # Qdrant vector database
+  models_cache: ./data/models  # Downloaded model files
+
+# Index management
+index:
+  reindex: false               # true = rebuild embeddings index on startup
+  reset_cache: false           # true = re-download models on startup

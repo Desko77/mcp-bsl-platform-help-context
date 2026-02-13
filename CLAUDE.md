@@ -4,58 +4,93 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-MCP server (Python) that gives AI assistants access to 1C:Enterprise platform API documentation. Reads binary `.hbk` help files or pre-exported JSON, parses HTML pages into structured domain entities, and exposes 5 MCP tools for fuzzy search and navigation. Python port of [mcp-bsl-platform-context](https://github.com/alkoleft/mcp-bsl-platform-context) (Kotlin).
+MCP server (Python) that gives AI assistants access to 1C:Enterprise platform API documentation. Reads binary `.hbk` help files or pre-exported JSON, parses HTML pages into structured domain entities, and exposes MCP tools for fuzzy, semantic, and hybrid search. Python port of [mcp-bsl-platform-context](https://github.com/alkoleft/mcp-bsl-platform-context) (Kotlin).
 
 ## Commands
 
 ```bash
-pip install -e .           # Install in dev mode
-pip install -e ".[dev]"    # Install with pytest
+pip install -e .              # Install in dev mode
+pip install -e ".[dev]"       # Install with pytest
+pip install -e ".[local]"     # Install with local embedding models (sentence-transformers, torch)
 
-pytest -v                  # Run all tests (79+)
+pytest -v                     # Run all tests (189+)
 pytest -v tests/test_search_engine.py           # Single test module
 pytest -v tests/test_search_engine.py::test_name  # Single test
 
-# Run the server (CLI options or env vars MCP_BSL_*)
-mcp-bsl-context -p /path/to/1cv8/8.3.25.1257              # HBK source, STDIO
-mcp-bsl-context -p /path --data-source json --json-path /path/to/json  # JSON source
-mcp-bsl-context -p /path -m sse --port 8080                # SSE transport
-mcp-bsl-context -p /path -m streamable-http --port 8080    # Streamable HTTP transport
-mcp-bsl-context -p /path -v                                # Debug logging
+# Run the server — YAML config (recommended)
+mcp-bsl-context -c config.yml                                  # Full config from YAML
+mcp-bsl-context -c config.yml -p /opt/1cv8/x86_64              # YAML + CLI override
+
+# Run the server — CLI options (env vars MCP_BSL_* also work)
+mcp-bsl-context -p /opt/1cv8/x86_64                            # Auto-detect latest version
+mcp-bsl-context -p /opt/1cv8/x86_64 --platform-version 8.3.20  # Closest to 8.3.20
+mcp-bsl-context -p /path -m streamable-http --port 8080         # Streamable HTTP transport
+mcp-bsl-context -p /path --data-source json --json-path /path   # JSON source
 
 # Docker
-docker compose up                      # HBK source (mount into ./platform-data/)
-docker compose --profile json up       # JSON source (mount into ./json-data/)
+docker compose up                      # CPU + API providers
+docker compose --profile gpu up        # GPU + local models
+docker compose --profile json up       # JSON data source
 ```
+
+## Configuration
+
+YAML config file (`config.yml`) is the primary configuration method. See `config.example.yml` for all options.
+
+**Priority:** YAML < env vars (`MCP_BSL_*`) < CLI arguments.
+
+Key sections: `server`, `platform`, `search`, `embeddings`, `reranker`, `storage`, `index`.
 
 ## Architecture
 
-Layered DDD structure: `domain` → `infrastructure` → `presentation` → `server.py`.
+Layered DDD structure: `config.py` -> `domain` -> `infrastructure` -> `presentation` -> `server.py`.
+
+**Config** (`config.py`) — `AppConfig` dataclass tree, `load_config()` merges YAML + env + CLI.
 
 **Domain** (`domain/`) — pure business logic, all dataclasses are `frozen=True`:
 - `entities.py`: `Definition`, `MethodDefinition`, `PropertyDefinition`, `PlatformTypeDefinition`, `Signature`, `ParameterDefinition`
 - `enums.py`: `ApiType` enum (METHOD, PROPERTY, TYPE, CONSTRUCTOR)
-- `value_objects.py`: immutable `SearchQuery`, `SearchOptions`
+- `value_objects.py`: `SearchQuery`, `SearchOptions`, `PlatformVersion`, `find_closest_version()`
 - `services.py`: `ContextSearchService` — orchestrates search and validation
-- `exceptions.py`: `DomainException` hierarchy (`InvalidSearchQueryException`, `PlatformTypeNotFoundException`, etc.)
+- `exceptions.py`: `DomainException` hierarchy
 
 **Infrastructure** (`infrastructure/`):
-- `hbk/` — binary HBK file parsing: `container_reader.py` (struct unpacking) → `content_reader.py` (ZIP extraction) → `context_reader.py` (orchestrator) → `pages_visitor.py` (visitor pattern over page tree). Sub-packages: `toc/` (bracket-format TOC tokenizer/parser), `parsers/` (BeautifulSoup HTML parsers for methods, properties, constructors, enums, objects)
+- `hbk/` — binary HBK file parsing: `container_reader.py` -> `content_reader.py` -> `context_reader.py` -> `pages_visitor.py`. Sub-packages: `toc/`, `parsers/`
 - `json_loader/` — alternative data source from pre-exported JSON files
-- `search/` — `engine.py` (`SimpleSearchEngine`), `indexes.py` (`HashIndex` exact match, `StartWithIndex` prefix), `strategies.py` (4 priority-ordered strategies: CompoundTypeSearch → TypeMemberSearch → RegularSearch → WordOrderSearch)
-- `storage/` — `storage.py` (thread-safe lazy-loading via `RLock`), `repository.py` (facade), `loader.py` (finds/reads HBK), `mapper.py` (HBK models → domain entities)
+- `search/` — `engine.py` (keyword `SimpleSearchEngine`), `semantic_engine.py` (Qdrant + embeddings), `hybrid_engine.py` (RRF merge + reranker), `indexes.py`, `strategies.py`
+- `embeddings/` — `provider.py` (`EmbeddingProvider` ABC, local/API), `reranker.py` (`Reranker` ABC, local/API), `document_builder.py` (entities -> embeddable text + Qdrant payload)
+- `storage/` — `storage.py` (thread-safe lazy-loading), `repository.py` (facade), `loader.py`, `mapper.py`, `version_discovery.py` (`VersionDiscovery`)
 
 **Presentation** (`presentation/formatter.py`) — `MarkdownFormatter` for MCP tool output.
 
-**Server** (`server.py`) — `create_server()` wires dependencies, registers 5 FastMCP tools: `search`, `info`, `get_member`, `get_members`, `get_constructors`.
+**Server** (`server.py`) — `create_server(config)` wires dependencies, discovers platform versions, registers 6 MCP tools. `_LazySemanticState` defers ML model loading until first semantic/hybrid search request.
 
-**Entry point** (`__main__.py`) — Click CLI with options for platform path, transport mode (stdio/sse/streamable-http), data source. All options also accept `MCP_BSL_*` environment variables.
+**Entry point** (`__main__.py`) — Click CLI with `--config`/`-c` for YAML, plus individual CLI overrides.
+
+## Search Modes
+
+The `search` tool supports three modes via the `mode` parameter (default from `config.search.default_mode`):
+
+| Mode | Engine | Description |
+|------|--------|-------------|
+| `keyword` | `SimpleSearchEngine` | 4-strategy keyword search (hash, prefix, compound, word-order) |
+| `semantic` | `SemanticSearchEngine` | Embed query -> Qdrant ANN -> optional cross-encoder rerank |
+| `hybrid` | `HybridSearchEngine` | Keyword + semantic in parallel -> RRF merge (k=60) -> rerank |
+
+**RAG pipeline:** `DocumentBuilder` -> `EmbeddingProvider` -> Qdrant embedded -> `Reranker`
+
+**Default models:** `ai-forever/ru-en-RoSBERTa` (embedder), `DiTy/cross-encoder-russian-msmarco` (reranker)
+
+**Providers:** `local` (sentence-transformers) or `openai-compatible` (any OpenAI-format API)
 
 ## Key Design Decisions
 
+- **YAML-first config**: `config.py` loads YAML -> env vars -> CLI overrides in priority order
+- **Multi-version support**: `VersionDiscovery` scans for version subdirectories (8.X.X.X pattern), resolves to closest match or latest. Single-version paths still work transparently.
+- **Lazy semantic init**: ML models and Qdrant are only loaded on first semantic/hybrid search, not at startup. Keyword-only usage incurs no overhead.
 - **Thread safety**: `RLock` in storage and search engine for MCP's async context
 - **Lazy loading**: platform context loaded on first search, not at startup
 - **Bilingual API names**: supports both Russian (PascalCase) and English; search is case-insensitive with CamelCase word splitting
-- **Search deduplication**: results deduplicated by lowercased name, max 50 results
 - **HBK format**: proprietary binary container with ZIP-compressed TOC (bracket format) and ZIP archive of HTML docs; content encoded UTF-16LE
-- **Docker**: multi-stage build (builder + slim runtime), runs as non-root `mcpuser`, defaults to streamable-http on port 8080, data mounted at `/data/platform` or `/data/json`
+- **Docker**: multi-stage build, non-root `mcpuser`, Qdrant data and model cache mounted on host for persistence
+- **Qdrant embedded**: vector DB runs in-process, persists to `storage.qdrant_path`. Deterministic UUID5 point IDs ensure stability across restarts.

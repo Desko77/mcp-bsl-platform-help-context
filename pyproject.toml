@@ -27,9 +27,15 @@ dependencies = [
     "beautifulsoup4>=4.12.0",
     "lxml>=5.0.0",
     "click>=8.1.0",
+    "pyyaml>=6.0",
+    "qdrant-client>=1.7.0",
 ]
 
 [project.optional-dependencies]
+local = [
+    "sentence-transformers>=2.2.0",
+    "torch>=2.0.0",
+]
 dev = [
     "pytest>=8.0.0",
     "pytest-cov>=5.0.0",
