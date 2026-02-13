@@ -42,8 +42,8 @@ RUN mkdir -p /data/platform /data/json && \
 USER mcpuser
 WORKDIR /home/mcpuser
 
-# Default environment variables for Docker (SSE mode)
-ENV MCP_BSL_MODE=sse
+# Default environment variables for Docker (Streamable HTTP mode)
+ENV MCP_BSL_MODE=streamable-http
 ENV MCP_BSL_PORT=8080
 ENV MCP_BSL_DATA_SOURCE=hbk
 ENV MCP_BSL_PLATFORM_PATH=/data/platform

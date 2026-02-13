@@ -23,17 +23,17 @@ def main() -> None:
     )
     @click.option(
         "--mode", "-m",
-        type=click.Choice(["stdio", "sse"]),
+        type=click.Choice(["stdio", "sse", "streamable-http"]),
         default="stdio",
         envvar="MCP_BSL_MODE",
-        help="Transport mode: stdio or sse (env: MCP_BSL_MODE)",
+        help="Transport mode: stdio, sse, or streamable-http (env: MCP_BSL_MODE)",
     )
     @click.option(
         "--port",
         type=int,
         default=8080,
         envvar="MCP_BSL_PORT",
-        help="Port for SSE server (env: MCP_BSL_PORT)",
+        help="Port for HTTP server (env: MCP_BSL_PORT)",
     )
     @click.option(
         "--data-source",
@@ -91,8 +91,8 @@ def main() -> None:
 
         if mode == "stdio":
             server.run(transport="stdio")
-        elif mode == "sse":
-            server.run(transport="sse", port=port)
+        else:
+            server.run(transport=mode, port=port)
 
     cli()
 
