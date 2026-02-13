@@ -92,5 +92,7 @@ The `search` tool supports three modes via the `mode` parameter (default from `c
 - **Lazy loading**: platform context loaded on first search, not at startup
 - **Bilingual API names**: supports both Russian (PascalCase) and English; search is case-insensitive with CamelCase word splitting
 - **HBK format**: proprietary binary container with ZIP-compressed TOC (bracket format) and ZIP archive of HTML docs; content encoded UTF-16LE
-- **Docker**: multi-stage build, non-root `mcpuser`, Qdrant data and model cache mounted on host for persistence
+- **HBK version differences**: 8.3.27+ uses multi-page data chains in container, TOC language codes `"ru"`/`"en"` (quoted) instead of `"1"`/`"2"`, `"#"` for section headers, multiple root nodes (10), CSS classes `V8SH_heading`/`V8SH_chapter` in HTML. TOC paths have leading `/` but ZIP entries don't — stripped in `content_reader.py`.
+- **Docker**: multi-stage build, non-root `mcpuser`, Qdrant data and model cache mounted on host for persistence. GPU Dockerfile uses venv (not `--prefix`) to avoid Ubuntu system pip issues with pyproject.toml packages.
 - **Qdrant embedded**: vector DB runs in-process, persists to `storage.qdrant_path`. Deterministic UUID5 point IDs ensure stability across restarts.
+- **Host binding**: `MCP_BSL_HOST` env var / `server.host` config controls bind address. Docker sets `0.0.0.0`; local default is `127.0.0.1`.
