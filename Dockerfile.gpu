@@ -1,0 +1,63 @@
+# === GPU build: local sentence-transformers + torch with CUDA ===
+FROM nvidia/cuda:12.1.1-runtime-ubuntu22.04 AS builder
+
+ENV DEBIAN_FRONTEND=noninteractive
+
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+        python3 python3-pip python3-venv python3-dev \
+        gcc libxml2-dev libxslt1-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /build
+
+# Install dependencies first (layer caching)
+COPY pyproject.toml .
+RUN pip3 install --no-cache-dir --prefix=/install ".[local]"
+
+# Copy source and install the project
+COPY . .
+RUN pip3 install --no-cache-dir --prefix=/install ".[local]"
+
+
+# === Runtime stage ===
+FROM nvidia/cuda:12.1.1-runtime-ubuntu22.04
+
+ENV DEBIAN_FRONTEND=noninteractive
+
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+        python3 python3-pip \
+        libxml2 libxslt1.1 \
+    && rm -rf /var/lib/apt/lists/*
+
+# Create non-root user
+RUN useradd --create-home --shell /bin/bash mcpuser
+
+# Copy installed packages from builder
+COPY --from=builder /install /usr/local
+
+# Create directories for data mounts
+RUN mkdir -p /data/platform /data/json /home/mcpuser/data/qdrant /home/mcpuser/data/models && \
+    chown -R mcpuser:mcpuser /data /home/mcpuser/data
+
+USER mcpuser
+WORKDIR /home/mcpuser
+
+# Default environment variables
+ENV MCP_BSL_MODE=streamable-http
+ENV MCP_BSL_PORT=8080
+ENV MCP_BSL_DATA_SOURCE=hbk
+ENV MCP_BSL_PLATFORM_PATH=/data/platform
+ENV MCP_BSL_JSON_PATH=/data/json
+
+# NVIDIA runtime visibility
+ENV NVIDIA_VISIBLE_DEVICES=all
+ENV NVIDIA_DRIVER_CAPABILITIES=compute,utility
+
+EXPOSE 8080
+
+HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --retries=3 \
+    CMD python3 -c "import socket; s=socket.create_connection(('localhost', 8080), timeout=5); s.close()"
+
+ENTRYPOINT ["mcp-bsl-context"]

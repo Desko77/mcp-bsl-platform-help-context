@@ -1,5 +1,5 @@
 services:
-  # Default service: HBK data source
+  # Default service: CPU + keyword search (or API-based semantic search)
   # Usage: docker compose up
   #
   # Volume mapping:
@@ -28,11 +28,63 @@ services:
       #- /opt/1cv8/x86_64/8.3.25.1257:/data/platform:ro
       # Windows (Docker Desktop) — раскомментируйте нужную строку вместо Linux:
        - "C:/Program Files/1cv8/8.3.25.1257:/data/platform:ro"
+      # YAML-конфиг (опционально):
+      #- ./config.yml:/home/mcpuser/config.yml:ro
+      # Персистентные данные (Qdrant + кэш моделей):
+       - ./mcp-data/qdrant:/home/mcpuser/data/qdrant
+       - ./mcp-data/models:/home/mcpuser/data/models
     healthcheck:
       test: ["CMD", "python", "-c", "import socket; s=socket.create_connection(('localhost', 8080), timeout=5); s.close()"]
       interval: 30s
       timeout: 5s
       start_period: 10s
+      retries: 3
+
+  # GPU service: local sentence-transformers + torch with CUDA
+  # Usage: docker compose --profile gpu up
+  #
+  # Requires:
+  #   - NVIDIA GPU with drivers installed
+  #   - nvidia-container-toolkit: https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/install-guide.html
+  #
+  mcp-bsl-context-gpu:
+    build:
+      context: .
+      dockerfile: Dockerfile.gpu
+    container_name: mcp-bsl-context-gpu
+    restart: unless-stopped
+    profiles:
+      - gpu
+    ports:
+      - "8080:8080"
+    environment:
+      MCP_BSL_MODE: streamable-http
+      MCP_BSL_PORT: "8080"
+      MCP_BSL_DATA_SOURCE: hbk
+      MCP_BSL_PLATFORM_PATH: /data/platform
+      # MCP_BSL_VERBOSE: "true"
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    volumes:
+      # Linux:
+      #- /opt/1cv8/x86_64/8.3.25.1257:/data/platform:ro
+      # Windows (Docker Desktop):
+       - "C:/Program Files/1cv8/8.3.25.1257:/data/platform:ro"
+      # YAML-конфиг (опционально):
+      #- ./config.yml:/home/mcpuser/config.yml:ro
+      # Персистентные данные (Qdrant + кэш моделей) — сохраняются между перезапусками:
+       - ./mcp-data/qdrant:/home/mcpuser/data/qdrant
+       - ./mcp-data/models:/home/mcpuser/data/models
+    healthcheck:
+      test: ["CMD", "python3", "-c", "import socket; s=socket.create_connection(('localhost', 8080), timeout=5); s.close()"]
+      interval: 30s
+      timeout: 5s
+      start_period: 30s
       retries: 3
 
   # Alternative: JSON data source
@@ -52,9 +104,11 @@ services:
       MCP_BSL_DATA_SOURCE: json
       MCP_BSL_PLATFORM_PATH: /data/platform
       MCP_BSL_JSON_PATH: /data/json
-      # MCP_BSL_VERBOSE: "true"  # Uncomment for debug logging
+      # MCP_BSL_VERBOSE: "true"
     volumes:
       - ./json-data:/data/json:ro
+      - ./mcp-data/qdrant:/home/mcpuser/data/qdrant
+      - ./mcp-data/models:/home/mcpuser/data/models
     healthcheck:
       test: ["CMD", "python", "-c", "import socket; s=socket.create_connection(('localhost', 8080), timeout=5); s.close()"]
       interval: 30s

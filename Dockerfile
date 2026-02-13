@@ -36,8 +36,8 @@ RUN useradd --create-home --shell /bin/bash mcpuser
 COPY --from=builder /install /usr/local
 
 # Create directories for data mounts
-RUN mkdir -p /data/platform /data/json && \
-    chown -R mcpuser:mcpuser /data
+RUN mkdir -p /data/platform /data/json /home/mcpuser/data/qdrant /home/mcpuser/data/models && \
+    chown -R mcpuser:mcpuser /data /home/mcpuser/data
 
 USER mcpuser
 WORKDIR /home/mcpuser
