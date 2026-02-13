@@ -120,9 +120,30 @@ mcp-bsl-context -p /opt/1cv8/x86_64/8.3.25.1257 -m sse --port 8080
 
 ### Streamable HTTP (рекомендуется для новых интеграций)
 
+[Streamable HTTP](https://modelcontextprotocol.io/specification/2025-03-26/basic/transports#streamable-http) — актуальный HTTP-транспорт в спецификации MCP, заменяющий устаревший SSE. Основные отличия:
+
+- **Единый эндпоинт** `/mcp` вместо двух (`/sse` + `/messages`) — проще настройка и проксирование
+- **Stateless-режим** — каждый запрос самодостаточен, не требуется держать долгоживущее SSE-соединение
+- **Совместимость** — по-прежнему может использовать SSE для стриминга ответов внутри HTTP-ответа
+- **Лучше для production** — корректно работает за reverse proxy, load balancer, в Kubernetes
+
 ```bash
 mcp-bsl-context -p /opt/1cv8/x86_64/8.3.25.1257 -m streamable-http --port 8080
 ```
+
+Подключение клиента:
+
+```json
+{
+  "mcpServers": {
+    "bsl-context": {
+      "url": "http://localhost:8080/mcp"
+    }
+  }
+}
+```
+
+> **Примечание:** SSE-режим (`-m sse`) по-прежнему поддерживается для обратной совместимости с клиентами, которые ещё не обновились до Streamable HTTP.
 
 ## Docker
 
