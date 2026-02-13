@@ -174,7 +174,19 @@ docker run -d \
 
 ### Docker Compose
 
-HBK-режим (поместите каталог платформы 1С в `./platform-data/`):
+В `docker-compose.yml` нужно указать путь к каталогу установки платформы 1С, в котором находится файл `shcntx_ru.hbk`.
+
+Откройте `docker-compose.yml` и замените путь тома на свой:
+
+```yaml
+volumes:
+  # Linux:
+  - /opt/1cv8/x86_64/8.3.25.1257:/data/platform:ro
+  # Windows (Docker Desktop):
+  # - "C:/Program Files/1cv8/8.3.25.1257:/data/platform:ro"
+```
+
+Запуск:
 
 ```bash
 docker compose up -d

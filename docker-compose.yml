@@ -1,7 +1,15 @@
 services:
   # Default service: HBK data source
   # Usage: docker compose up
-  # Place 1C platform directory into ./platform-data/
+  #
+  # Volume mapping:
+  #   Mount the 1C platform installation directory that contains shcntx_ru.hbk.
+  #   Replace the host path with your actual 1C platform path:
+  #
+  #   Linux:   /opt/1cv8/x86_64/8.3.25.1257
+  #   Windows: /c/Program Files/1cv8/8.3.25.1257  (Docker Desktop path format)
+  #            or use the short form: /c/Progra~1/1cv8/8.3.25.1257
+  #
   mcp-bsl-context:
     build: .
     container_name: mcp-bsl-context
@@ -15,7 +23,11 @@ services:
       MCP_BSL_PLATFORM_PATH: /data/platform
       # MCP_BSL_VERBOSE: "true"  # Uncomment for debug logging
     volumes:
-      - ./platform-data:/data/platform:ro
+      # Укажите путь к каталогу установки платформы 1С, содержащему shcntx_ru.hbk
+      # Linux:
+      #- /opt/1cv8/x86_64/8.3.25.1257:/data/platform:ro
+      # Windows (Docker Desktop) — раскомментируйте нужную строку вместо Linux:
+       - "C:/Program Files/1cv8/8.3.25.1257:/data/platform:ro"
     healthcheck:
       test: ["CMD", "python", "-c", "import socket; s=socket.create_connection(('localhost', 8080), timeout=5); s.close()"]
       interval: 30s
