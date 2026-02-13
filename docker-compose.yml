@@ -1,0 +1,51 @@
+services:
+  # Default service: HBK data source
+  # Usage: docker compose up
+  # Place 1C platform directory into ./platform-data/
+  mcp-bsl-context:
+    build: .
+    container_name: mcp-bsl-context
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    environment:
+      MCP_BSL_MODE: sse
+      MCP_BSL_PORT: "8080"
+      MCP_BSL_DATA_SOURCE: hbk
+      MCP_BSL_PLATFORM_PATH: /data/platform
+      # MCP_BSL_VERBOSE: "true"  # Uncomment for debug logging
+    volumes:
+      - ./platform-data:/data/platform:ro
+    healthcheck:
+      test: ["CMD", "python", "-c", "import socket; s=socket.create_connection(('localhost', 8080), timeout=5); s.close()"]
+      interval: 30s
+      timeout: 5s
+      start_period: 10s
+      retries: 3
+
+  # Alternative: JSON data source
+  # Usage: docker compose --profile json up
+  # Place exported JSON files into ./json-data/
+  mcp-bsl-context-json:
+    build: .
+    container_name: mcp-bsl-context-json
+    restart: unless-stopped
+    profiles:
+      - json
+    ports:
+      - "8080:8080"
+    environment:
+      MCP_BSL_MODE: sse
+      MCP_BSL_PORT: "8080"
+      MCP_BSL_DATA_SOURCE: json
+      MCP_BSL_PLATFORM_PATH: /data/platform
+      MCP_BSL_JSON_PATH: /data/json
+      # MCP_BSL_VERBOSE: "true"  # Uncomment for debug logging
+    volumes:
+      - ./json-data:/data/json:ro
+    healthcheck:
+      test: ["CMD", "python", "-c", "import socket; s=socket.create_connection(('localhost', 8080), timeout=5); s.close()"]
+      interval: 30s
+      timeout: 5s
+      start_period: 10s
+      retries: 3

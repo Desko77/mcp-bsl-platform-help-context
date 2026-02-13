@@ -1,0 +1,33 @@
+# Version control
+.git
+.gitignore
+
+# Python artifacts
+__pycache__
+*.pyc
+*.pyo
+*.egg-info
+*.egg
+dist/
+build/
+.pytest_cache/
+.coverage
+
+# Virtual environments
+.venv/
+venv/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Docker (prevent recursive copy)
+Dockerfile
+docker-compose.yml
+.dockerignore
+
+# Documentation (not needed at runtime)
+README.md
+LICENSE

@@ -59,13 +59,26 @@ mcp-bsl-context -p /path --data-source json --json-path /path/to/json
 ### Параметры CLI
 
 ```
---platform-path, -p    Путь к каталогу установки 1С (обязательный)
+--platform-path, -p    Путь к каталогу установки 1С (обязателен для hbk)
 --mode, -m             Транспорт: stdio (по умолчанию) или sse
 --port                 Порт для SSE-сервера (по умолчанию: 8080)
 --data-source          Источник данных: hbk или json
 --json-path            Путь к каталогу с JSON-файлами
 --verbose, -v          Включить отладочное логирование
 ```
+
+### Переменные окружения
+
+Все параметры CLI можно задать через переменные окружения. CLI-аргументы имеют приоритет.
+
+| CLI-аргумент | Переменная окружения | По умолчанию |
+|---|---|---|
+| `--platform-path` | `MCP_BSL_PLATFORM_PATH` | (обязателен для hbk) |
+| `--mode` | `MCP_BSL_MODE` | `stdio` |
+| `--port` | `MCP_BSL_PORT` | `8080` |
+| `--data-source` | `MCP_BSL_DATA_SOURCE` | `hbk` |
+| `--json-path` | `MCP_BSL_JSON_PATH` | — |
+| `--verbose` | `MCP_BSL_VERBOSE` | `false` |
 
 ## Интеграция
 
@@ -103,6 +116,53 @@ mcp-bsl-context -p /path --data-source json --json-path /path/to/json
 
 ```bash
 mcp-bsl-context -p /opt/1cv8/x86_64/8.3.25.1257 -m sse --port 8080
+```
+
+## Docker
+
+### Сборка образа
+
+```bash
+docker build -t mcp-bsl-context .
+```
+
+### Запуск с HBK-данными
+
+```bash
+docker run -d \
+  -v /opt/1cv8/x86_64/8.3.25.1257:/data/platform:ro \
+  -p 8080:8080 \
+  mcp-bsl-context
+```
+
+### Запуск с JSON-данными
+
+```bash
+docker run -d \
+  -e MCP_BSL_DATA_SOURCE=json \
+  -v ./json-data:/data/json:ro \
+  -p 8080:8080 \
+  mcp-bsl-context
+```
+
+### Docker Compose
+
+HBK-режим (поместите каталог платформы 1С в `./platform-data/`):
+
+```bash
+docker compose up -d
+```
+
+JSON-режим (поместите JSON-файлы в `./json-data/`):
+
+```bash
+docker compose --profile json up -d
+```
+
+### Проверка здоровья
+
+```bash
+docker inspect --format='{{.State.Health.Status}}' mcp-bsl-context
 ```
 
 ## Архитектура
