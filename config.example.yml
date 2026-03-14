@@ -52,3 +52,8 @@ storage:
 index:
   reindex: false               # true = rebuild embeddings index on startup
   reset_cache: false           # true = re-download models on startup
+
+# Documentation files (optional — bundled defaults are used when not set)
+docs:
+  strict_types_path: null      # Custom path to strict-types.md
+  guideline_path: null         # Custom path to guideline.md

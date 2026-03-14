@@ -54,5 +54,8 @@ where = ["."]
 include = ["mcp_bsl_context*"]
 namespaces = false
 
+[tool.setuptools.package-data]
+"mcp_bsl_context.docinfo" = ["*.md"]
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]

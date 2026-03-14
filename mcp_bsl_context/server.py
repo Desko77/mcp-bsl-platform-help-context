@@ -2,11 +2,13 @@
 
 from __future__ import annotations
 
+import importlib.resources as pkg_resources
 import logging
 import threading
 from pathlib import Path
 
 from mcp_bsl_context.config import AppConfig
+from mcp_bsl_context.domain.docs_service import DocsInfoService, DocsLoadException
 from mcp_bsl_context.domain.entities import Definition
 from mcp_bsl_context.domain.exceptions import DomainException, PlatformContextLoadException
 from mcp_bsl_context.domain.services import ContextSearchService
@@ -305,6 +307,54 @@ def create_server(config: AppConfig):
 
         return "\n".join(parts)
 
+    # --- Documentation tools (strict typing, coding guidelines) ---
+
+    docs_service = _create_docs_service(config)
+
+    @mcp.tool()
+    def get_coding_guideline() -> str:
+        """Получить рекомендации по стилю кода BSL (1С:Предприятие).
+
+        Возвращает полный набор рекомендаций по написанию качественного кода 1С.
+        """
+        try:
+            return docs_service.get_guideline()
+        except DomainException as e:
+            return formatter.format_error(e)
+
+    @mcp.tool()
+    def get_strict_typing_info(topic: str) -> str:
+        """Получить документацию по строгой типизации BSL по теме.
+
+        Строгая типизация позволяет контролировать типы в коде 1С:Предприятия 8
+        с помощью аннотации @strict-types и типизирующих комментариев.
+
+        Используйте topic='topics' для получения списка всех доступных тем.
+
+        Args:
+            topic: Название темы (например, 'overview', 'arrays', 'constructor-functions')
+                   или 'topics' для списка всех тем.
+        """
+        try:
+            return docs_service.get_strict_typing_info(topic)
+        except DomainException as e:
+            return formatter.format_error(e)
+
+    @mcp.tool()
+    def search_strict_typing(query: str) -> str:
+        """Поиск по документации строгой типизации BSL.
+
+        Выполняет текстовый поиск по всем разделам документации строгой типизации
+        и возвращает совпадения с контекстом.
+
+        Args:
+            query: Поисковый запрос (например, 'Массив', 'конструктор', 'ТаблицаЗначений')
+        """
+        try:
+            return docs_service.search_strict_typing(query)
+        except DomainException as e:
+            return formatter.format_error(e)
+
     return mcp
 
 
@@ -376,3 +426,26 @@ def _create_json_storage(json_path: str) -> PlatformContextStorage:
     storage._loaded = True
     storage._lock = __import__("threading").RLock()
     return storage
+
+
+def _load_docs_content(custom_path: str | None, default_filename: str) -> str:
+    """Load documentation content from custom path or bundled default."""
+    if custom_path:
+        path = Path(custom_path)
+        if not path.is_file():
+            raise DocsLoadException(f"Файл документации не найден: {custom_path}")
+        return path.read_text(encoding="utf-8")
+
+    ref = pkg_resources.files("mcp_bsl_context.docinfo").joinpath(default_filename)
+    return ref.read_text(encoding="utf-8")
+
+
+def _create_docs_service(config: AppConfig) -> DocsInfoService:
+    """Create DocsInfoService with content from config paths or bundled defaults."""
+    strict_types_content = _load_docs_content(
+        config.docs.strict_types_path, "strict-types.md"
+    )
+    guideline_content = _load_docs_content(
+        config.docs.guideline_path, "guideline.md"
+    )
+    return DocsInfoService(strict_types_content, guideline_content)
