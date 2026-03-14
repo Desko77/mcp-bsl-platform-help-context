@@ -180,17 +180,19 @@ def create_server(config: AppConfig):
         type: str | None = None,
         limit: int | None = None,
     ) -> str:
-        """Search 1C platform API documentation.
+        """Поиск по документации API платформы 1С:Предприятие.
 
-        Supports keyword, semantic (embeddings), and hybrid (both + RRF merge) modes.
-        Use specific 1C terms (Russian or English) for best results.
+        Поддерживает keyword (по ключевым словам), semantic (векторный) и hybrid (комбинированный) режимы.
+        Для лучших результатов используйте конкретные термины 1С (русские или английские),
+        например: 'НайтиПоСсылке', 'FindByRef', 'ТаблицаЗначений.Добавить'.
+        Для семантического поиска подходят запросы на естественном языке:
+        'как добавить строку в таблицу значений'.
 
         Args:
-            query: Search term (e.g., 'НайтиПоСсылке', 'FindByRef',
-                   or natural language: 'добавить строку в таблицу значений')
-            mode: Search mode — 'keyword', 'semantic', or 'hybrid' (default from config)
-            type: Filter by element type: 'method', 'property', or 'type'
-            limit: Maximum results to return (1-50, default 10)
+            query: Поисковый запрос — имя метода/типа/свойства или текст на естественном языке
+            mode: Режим поиска: 'keyword' (быстрый, по именам), 'semantic' (по смыслу), 'hybrid' (оба + rerank). По умолчанию из конфигурации
+            type: Фильтр по типу элемента: 'method', 'property' или 'type'
+            limit: Максимальное количество результатов (1–50, по умолчанию 10)
         """
         effective_mode = mode or config.search.default_mode
         if effective_mode not in VALID_MODES:
@@ -227,11 +229,14 @@ def create_server(config: AppConfig):
 
     @mcp.tool()
     def info(name: str, type: str) -> str:
-        """Get detailed information about a specific 1C platform API element.
+        """Получить детальную информацию о конкретном элементе API платформы 1С.
+
+        Возвращает полное описание, сигнатуры, параметры, возвращаемое значение.
+        Используйте точное имя элемента (полученное через search).
 
         Args:
-            name: Exact element name (e.g., 'НайтиПоСсылке')
-            type: Element type: 'method', 'property', or 'type'
+            name: Точное имя элемента (например, 'НайтиПоСсылке', 'FindByRef', 'ТаблицаЗначений')
+            type: Тип элемента: 'method' (метод), 'property' (свойство) или 'type' (тип)
         """
         try:
             definition = service.get_info(name, type)
@@ -241,11 +246,11 @@ def create_server(config: AppConfig):
 
     @mcp.tool()
     def get_member(type_name: str, member_name: str) -> str:
-        """Get information about a method or property of a specific 1C type.
+        """Получить информацию о методе или свойстве конкретного типа платформы 1С.
 
         Args:
-            type_name: Type name (e.g., 'СправочникСсылка', 'CatalogRef')
-            member_name: Method or property name within the type
+            type_name: Имя типа (например, 'СправочникСсылка', 'CatalogRef', 'ТаблицаЗначений')
+            member_name: Имя метода или свойства внутри типа (например, 'Добавить', 'Количество')
         """
         try:
             definition = service.find_member_by_type_and_name(type_name, member_name)
@@ -255,10 +260,13 @@ def create_server(config: AppConfig):
 
     @mcp.tool()
     def get_members(type_name: str) -> str:
-        """Get full list of methods and properties for a 1C platform type.
+        """Получить полный список методов и свойств типа платформы 1С.
+
+        Возвращает структурированный список всех доступных методов и свойств
+        для указанного типа.
 
         Args:
-            type_name: Type name (e.g., 'ТаблицаЗначений', 'ValueTable')
+            type_name: Имя типа (например, 'ТаблицаЗначений', 'ValueTable', 'СправочникОбъект')
         """
         try:
             members = service.find_type_members(type_name)
@@ -268,10 +276,12 @@ def create_server(config: AppConfig):
 
     @mcp.tool()
     def get_constructors(type_name: str) -> str:
-        """Get constructor signatures for creating instances of a 1C platform type.
+        """Получить сигнатуры конструкторов для создания экземпляров типа платформы 1С.
+
+        Возвращает все варианты конструкторов с параметрами и описаниями.
 
         Args:
-            type_name: Type name (e.g., 'ТаблицаЗначений', 'ValueTable')
+            type_name: Имя типа (например, 'ТаблицаЗначений', 'ValueTable', 'Массив')
         """
         try:
             constructors = service.find_constructors(type_name)
@@ -281,10 +291,10 @@ def create_server(config: AppConfig):
 
     @mcp.tool()
     def get_platform_info() -> str:
-        """Get information about the active platform version and list available versions.
+        """Получить информацию о текущей версии платформы 1С и доступных версиях.
 
-        Returns the currently loaded version, HBK file path,
-        and all discovered platform versions.
+        Возвращает активную версию, путь к HBK-файлу и список всех
+        обнаруженных версий платформы.
         """
         parts: list[str] = []
 
