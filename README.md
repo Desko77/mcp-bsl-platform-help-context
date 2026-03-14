@@ -368,6 +368,7 @@ pytest -v tests/test_search_engine.py::test_name  # Один тест
 ## Благодарности
 
 - [alkoleft/mcp-bsl-platform-context](https://github.com/alkoleft/mcp-bsl-platform-context) — оригинальный Kotlin-проект
+- [DitriXNew/mcp-bsl-platform-context](https://github.com/DitriXNew/mcp-bsl-platform-context) — развитие оригинального проекта
 - [Model Context Protocol](https://modelcontextprotocol.io/) — спецификация MCP
 - [FastMCP](https://github.com/jlowin/fastmcp) — Python MCP-фреймворк
 
