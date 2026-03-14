@@ -28,7 +28,7 @@ services:
       # Linux:
       #- /opt/1cv8/x86_64/8.3.25.1257:/data/platform:ro
       # Windows (Docker Desktop) — раскомментируйте нужную строку вместо Linux:
-       - "C:/Program Files/1cv8/8.3.25.1257:/data/platform:ro"
+       - "C:/Program Files/1cv8/8.3.27.1989:/data/platform:ro"
       # YAML-конфиг (опционально):
       #- ./config.yml:/home/mcpuser/config.yml:ro
       # Персистентные данные (Qdrant + кэш моделей):
@@ -57,11 +57,11 @@ services:
     profiles:
       - gpu
     ports:
-      - "8080:8080"
+      - "8003:8003"
     environment:
       MCP_BSL_MODE: streamable-http
       MCP_BSL_HOST: "0.0.0.0"
-      MCP_BSL_PORT: "8080"
+      MCP_BSL_PORT: "8003"
       MCP_BSL_DATA_SOURCE: hbk
       MCP_BSL_PLATFORM_PATH: /data/platform
       # MCP_BSL_VERBOSE: "true"
@@ -76,14 +76,14 @@ services:
       # Linux:
       #- /opt/1cv8/x86_64/8.3.25.1257:/data/platform:ro
       # Windows (Docker Desktop):
-       - "C:/Program Files/1cv8/8.3.25.1257:/data/platform:ro"
+       - "C:/Program Files/1cv8/8.3.27.1989:/data/platform:ro"
       # YAML-конфиг (опционально):
       #- ./config.yml:/home/mcpuser/config.yml:ro
       # Персистентные данные (Qdrant + кэш моделей) — сохраняются между перезапусками:
        - ./mcp-data/qdrant:/home/mcpuser/data/qdrant
        - ./mcp-data/models:/home/mcpuser/data/models
     healthcheck:
-      test: ["CMD", "python3", "-c", "import socket; s=socket.create_connection(('localhost', 8080), timeout=5); s.close()"]
+      test: ["CMD", "python3", "-c", "import socket; s=socket.create_connection(('localhost', 8003), timeout=5); s.close()"]
       interval: 30s
       timeout: 5s
       start_period: 30s

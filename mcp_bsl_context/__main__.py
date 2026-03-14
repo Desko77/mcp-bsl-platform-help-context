@@ -97,6 +97,9 @@ def main() -> None:
             format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
             stream=sys.stderr,
         )
+        # Suppress noisy MCP SDK request logs (ListToolsRequest, etc.)
+        if not app_config.server.verbose:
+            logging.getLogger("mcp.server.lowlevel.server").setLevel(logging.WARNING)
 
         if app_config.platform.data_source == "hbk" and not app_config.platform.path:
             click.echo(

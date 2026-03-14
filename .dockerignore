@@ -25,8 +25,15 @@ venv/
 
 # Docker (prevent recursive copy)
 Dockerfile
+Dockerfile.gpu
 docker-compose.yml
 .dockerignore
+
+# Persistent data (mounted at runtime, not needed in image)
+mcp-data/
+
+# Test data
+.qdrant_test/
 
 # Documentation (not needed at runtime)
 README.md

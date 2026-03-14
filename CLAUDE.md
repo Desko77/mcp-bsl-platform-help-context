@@ -13,7 +13,7 @@ pip install -e .              # Install in dev mode
 pip install -e ".[dev]"       # Install with pytest
 pip install -e ".[local]"     # Install with local embedding models (sentence-transformers, torch)
 
-pytest -v                     # Run all tests (189+)
+pytest -v                     # Run all tests (306)
 pytest -v tests/test_search_engine.py           # Single test module
 pytest -v tests/test_search_engine.py::test_name  # Single test
 
@@ -39,7 +39,7 @@ YAML config file (`config.yml`) is the primary configuration method. See `config
 
 **Priority:** YAML < env vars (`MCP_BSL_*`) < CLI arguments.
 
-Key sections: `server`, `platform`, `search`, `embeddings`, `reranker`, `storage`, `index`.
+Key sections: `server`, `platform`, `search`, `embeddings`, `reranker`, `storage`, `index`, `docs`.
 
 ## Architecture
 
@@ -52,18 +52,20 @@ Layered DDD structure: `config.py` -> `domain` -> `infrastructure` -> `presentat
 - `enums.py`: `ApiType` enum (METHOD, PROPERTY, TYPE, CONSTRUCTOR)
 - `value_objects.py`: `SearchQuery`, `SearchOptions`, `PlatformVersion`, `find_closest_version()`
 - `services.py`: `ContextSearchService` — orchestrates search and validation
+- `docs_service.py`: `DocsInfoService` — bundled BSL docs (strict typing, coding guidelines)
 - `exceptions.py`: `DomainException` hierarchy
 
 **Infrastructure** (`infrastructure/`):
 - `hbk/` — binary HBK file parsing: `container_reader.py` -> `content_reader.py` -> `context_reader.py` -> `pages_visitor.py`. Sub-packages: `toc/`, `parsers/`
 - `json_loader/` — alternative data source from pre-exported JSON files
+- **`docinfo/`** — bundled markdown docs shipped as package data (`strict-types.md`, `guideline.md`)
 - `search/` — `engine.py` (keyword `SimpleSearchEngine`), `semantic_engine.py` (Qdrant + embeddings), `hybrid_engine.py` (RRF merge + reranker), `indexes.py`, `strategies.py`
 - `embeddings/` — `provider.py` (`EmbeddingProvider` ABC, local/API), `reranker.py` (`Reranker` ABC, local/API), `document_builder.py` (entities -> embeddable text + Qdrant payload)
 - `storage/` — `storage.py` (thread-safe lazy-loading), `repository.py` (facade), `loader.py`, `mapper.py`, `version_discovery.py` (`VersionDiscovery`)
 
 **Presentation** (`presentation/formatter.py`) — `MarkdownFormatter` for MCP tool output.
 
-**Server** (`server.py`) — `create_server(config)` wires dependencies, discovers platform versions, registers 6 MCP tools. `_LazySemanticState` defers ML model loading until first semantic/hybrid search request.
+**Server** (`server.py`) — `create_server(config)` wires dependencies, discovers platform versions, registers 9 MCP tools (6 platform API + 3 docs). `_LazySemanticState` defers ML model loading until first semantic/hybrid search request.
 
 **Entry point** (`__main__.py`) — Click CLI with `--config`/`-c` for YAML, plus individual CLI overrides.
 
@@ -96,3 +98,4 @@ The `search` tool supports three modes via the `mode` parameter (default from `c
 - **Docker**: multi-stage build, non-root `mcpuser`, Qdrant data and model cache mounted on host for persistence. GPU Dockerfile uses venv (not `--prefix`) to avoid Ubuntu system pip issues with pyproject.toml packages.
 - **Qdrant embedded**: vector DB runs in-process, persists to `storage.qdrant_path`. Deterministic UUID5 point IDs ensure stability across restarts.
 - **Host binding**: `MCP_BSL_HOST` env var / `server.host` config controls bind address. Docker sets `0.0.0.0`; local default is `127.0.0.1`.
+- **Bundled docs**: `DocsInfoService` loads `strict-types.md` and `guideline.md` from `docinfo/` package or custom paths via `docs.strict_types_path` / `docs.guideline_path` config. Env vars: `MCP_BSL_DOCS_STRICT_TYPES_PATH`, `MCP_BSL_DOCS_GUIDELINE_PATH`.
