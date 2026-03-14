@@ -62,6 +62,12 @@ class IndexConfig:
 
 
 @dataclass
+class DocsConfig:
+    strict_types_path: str | None = None
+    guideline_path: str | None = None
+
+
+@dataclass
 class AppConfig:
     server: ServerConfig = field(default_factory=ServerConfig)
     platform: PlatformConfig = field(default_factory=PlatformConfig)
@@ -70,6 +76,7 @@ class AppConfig:
     reranker: RerankerConfig = field(default_factory=RerankerConfig)
     storage: StorageConfig = field(default_factory=StorageConfig)
     index: IndexConfig = field(default_factory=IndexConfig)
+    docs: DocsConfig = field(default_factory=DocsConfig)
 
 
 # Mapping: env var name -> (section, field)
@@ -82,6 +89,8 @@ _ENV_MAPPING: dict[str, tuple[str, str]] = {
     "MCP_BSL_DATA_SOURCE": ("platform", "data_source"),
     "MCP_BSL_JSON_PATH": ("platform", "json_path"),
     "MCP_BSL_VERBOSE": ("server", "verbose"),
+    "MCP_BSL_DOCS_STRICT_TYPES_PATH": ("docs", "strict_types_path"),
+    "MCP_BSL_DOCS_GUIDELINE_PATH": ("docs", "guideline_path"),
 }
 
 
