@@ -118,6 +118,8 @@ mcp-bsl-context -c config.yml
 | `--json-path` | `MCP_BSL_JSON_PATH` | — |
 | `--verbose` | `MCP_BSL_VERBOSE` | `false` |
 | `--host` | `MCP_BSL_HOST` | `127.0.0.1` |
+| — | `MCP_BSL_DOCS_STRICT_TYPES_PATH` | null (встроенный) |
+| — | `MCP_BSL_DOCS_GUIDELINE_PATH` | null (встроенный) |
 
 ## Использование
 
@@ -348,7 +350,7 @@ mcp_bsl_context/
 
 ```bash
 pip install -e ".[dev]"
-pytest -v                     # Все тесты (212+)
+pytest -v                     # Все тесты (306)
 pytest -v tests/test_search_engine.py           # Один модуль
 pytest -v tests/test_search_engine.py::test_name  # Один тест
 ```
