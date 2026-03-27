@@ -39,7 +39,10 @@ COPY --from=builder /install /usr/local
 RUN mkdir -p /data/platform /data/json /home/mcpuser/data/qdrant /home/mcpuser/data/models && \
     chown -R mcpuser:mcpuser /data /home/mcpuser/data
 
-USER mcpuser
+# Entrypoint fixes bind-mount ownership (Docker Desktop on Windows mounts as root)
+COPY docker-entrypoint.sh /usr/local/bin/
+RUN chmod +x /usr/local/bin/docker-entrypoint.sh
+
 WORKDIR /home/mcpuser
 
 # Default environment variables for Docker (Streamable HTTP mode)
@@ -56,4 +59,4 @@ EXPOSE 8080
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
     CMD python -c "import socket; s=socket.create_connection(('localhost', 8080), timeout=5); s.close()"
 
-ENTRYPOINT ["mcp-bsl-context"]
+ENTRYPOINT ["docker-entrypoint.sh", "mcp-bsl-context"]
