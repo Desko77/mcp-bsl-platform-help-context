@@ -118,3 +118,13 @@ services:
       timeout: 5s
       start_period: 10s
       retries: 3
+
+# Fix: Docker default network was getting 192.168.0.0/20 subnet,
+# which conflicts with LAN 192.168.11.x (LM Studio on 192.168.11.150).
+# Fixed subnet prevents this conflict.
+networks:
+  default:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 10.20.0.0/24
