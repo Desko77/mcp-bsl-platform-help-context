@@ -1,5 +1,7 @@
 # MCP BSL Platform Help Context
 
+[![SafeSkill 92/100](https://img.shields.io/badge/SafeSkill-92%2F100_Verified%20Safe-brightgreen)](https://safeskill.dev/scan/desko77-mcp-bsl-platform-help-context)
+
 **MCP-сервер для доступа к документации API платформы 1С:Предприятие**
 
 ![Python](https://img.shields.io/badge/Python-3.10%2B-blue)
