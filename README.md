@@ -45,6 +45,27 @@ Python-порт [mcp-bsl-platform-context](https://github.com/alkoleft/mcp-bsl-p
 | `get_strict_typing_info` | Документация по строгой типизации BSL. Используйте `topic='topics'` для списка тем | `topic` (название темы или `topics`) |
 | `search_strict_typing` | Текстовый поиск по документации строгой типизации с контекстом | `query` (поисковый запрос) |
 
+### Формат ответа
+
+Ответы формируются на русском языке в Markdown. Для метода и конструктора выводится строка синтаксиса из справки, параметры с маркером обязательности, типом, описанием и значением по умолчанию, возвращаемое значение. Метод с несколькими вариантами вызова выводится по вариантам (`Вариант синтаксиса: ...`). Маркер обязательности выводится только когда он есть в справке.
+
+````markdown
+## Найти
+
+```
+Найти(<Значение>, <Колонки>)
+```
+
+**Параметры:**
+
+- `Значение` (обязательный) - Тип: Произвольный. Искомое значение.
+- `Колонки` (необязательный) - Тип: Строка. Список имен колонок, разделенных запятыми, по которым производится поиск. Значение по умолчанию: Пустая строка.
+
+Осуществляет поиск значения в указанных колонках таблицы значений.
+
+**Возвращаемое значение:** Тип: СтрокаТаблицыЗначений, Неопределено. Строка, в которой содержится искомое значение.
+````
+
 ## Режимы поиска
 
 Инструмент `search` поддерживает три режима (параметр `mode`, по умолчанию из конфигурации):
@@ -112,6 +133,7 @@ mcp-bsl-context -c config.yml
 
 | CLI-аргумент | Переменная окружения | По умолчанию |
 |---|---|---|
+| `--config` | `MCP_BSL_CONFIG` | — |
 | `--platform-path` | `MCP_BSL_PLATFORM_PATH` | (обязателен для hbk) |
 | `--platform-version` | `MCP_BSL_PLATFORM_VERSION` | null (авто — последняя) |
 | `--mode` | `MCP_BSL_MODE` | `stdio` |
@@ -119,6 +141,7 @@ mcp-bsl-context -c config.yml
 | `--data-source` | `MCP_BSL_DATA_SOURCE` | `hbk` |
 | `--json-path` | `MCP_BSL_JSON_PATH` | — |
 | `--verbose` | `MCP_BSL_VERBOSE` | `false` |
+| — | `MCP_BSL_SEARCH_DEFAULT_MODE` | `hybrid` (keyword / semantic / hybrid) |
 | `--host` | `MCP_BSL_HOST` | `127.0.0.1` |
 | — | `MCP_BSL_DOCS_STRICT_TYPES_PATH` | null (встроенный) |
 | — | `MCP_BSL_DOCS_GUIDELINE_PATH` | null (встроенный) |
@@ -231,6 +254,8 @@ docker compose --profile gpu up -d     # GPU + локальные модели
 docker compose --profile json up -d    # JSON data source
 ```
 
+CPU-образ собирается без локальных ML-моделей, поэтому в сервисе `mcp-bsl-context` задан `MCP_BSL_SEARCH_DEFAULT_MODE: keyword`. Для semantic/hybrid поиска в этом образе нужен внешний embedding API (`embeddings.provider: openai-compatible`): опишите его в `config.yml` и раскомментируйте монтирование `./config.yml:/home/mcpuser/config.yml:ro` - файл по этому пути entrypoint передает серверу как `--config`.
+
 ### Ручная сборка
 
 ```bash
@@ -277,6 +302,9 @@ mcp_bsl_context/
 │   │   ├── pages_visitor.py        # Visitor: обход дерева страниц
 │   │   ├── toc/                    # TOC: токенизатор, парсер, дерево
 │   │   └── parsers/                # HTML-парсеры страниц (BeautifulSoup)
+│   │       ├── html_handler.py     # Разбор страницы на блоки (синтаксис, параметры, описание...)
+│   │       ├── params.py           # Варианты синтаксиса, параметры, тип и значение по умолчанию
+│   │       └── *_parser.py         # Метод, свойство, тип, конструктор, перечисление
 │   │
 │   ├── json_loader/           # Альтернативный источник: JSON
 │   ├── search/                # Поисковые движки
@@ -324,6 +352,7 @@ mcp_bsl_context/
 - **ANN-поиск** в Qdrant embedded (in-process, данные на диске)
 - **Reranking** результатов cross-encoder (`DiTy/cross-encoder-russian-msmarco`)
 - **Ленивая инициализация**: модели загружаются при первом semantic/hybrid запросе
+- **Состав индекса**: имя, описание, возвращаемое значение и имена параметров метода; тип и описание свойства. Индекс сохраняется в `storage.qdrant_path` и переиспользуется между запусками; индекс, собранный другой версией формата (в том числе версией 0.x сервера), пересобирается автоматически при первом semantic/hybrid запросе
 
 ## Инструкции для AI-ассистентов
 
@@ -352,7 +381,7 @@ mcp_bsl_context/
 
 ```bash
 pip install -e ".[dev]"
-pytest -v                     # Все тесты (306)
+pytest -v                     # Все тесты (359)
 pytest -v tests/test_search_engine.py           # Один модуль
 pytest -v tests/test_search_engine.py::test_name  # Один тест
 ```

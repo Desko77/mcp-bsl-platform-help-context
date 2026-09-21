@@ -4,9 +4,10 @@ from __future__ import annotations
 
 import re
 
-from ..models import MethodInfo, ParameterInfo, ReturnValueInfo, SignatureInfo
-from .base import PageParser
+from ..models import MethodInfo, ReturnValueInfo
+from .base import PageParser, page_description
 from .html_handler import ParsedPage
+from .params import parse_signatures, split_type_prefix
 
 
 class MethodPageParser(PageParser):
@@ -25,26 +26,17 @@ class MethodPageParser(PageParser):
             info.name_ru = page.title
 
         # Description
-        info.description = page.get_block_content("description")
+        info.description = page_description(page)
 
-        # Syntax
-        info.syntax = page.get_block_content("syntax")
+        # Syntax variants with their parameters
+        info.signatures = parse_signatures(page, info.name_ru)
+        info.syntax = info.signatures[0].syntax if info.signatures else ""
 
-        # Parameters
-        params_content = page.get_block_content("parameters")
-        if params_content:
-            info.signatures = [
-                SignatureInfo(
-                    name=info.name_ru,
-                    parameters=_parse_parameters(params_content),
-                    description="",
-                )
-            ]
-
-        # Return value
+        # Return value: type line "Тип: X." followed by the description
         rv_content = page.get_block_content("return_value")
         if rv_content:
-            info.return_value = ReturnValueInfo(description=rv_content)
+            rv_type, rv_description = split_type_prefix(rv_content)
+            info.return_value = ReturnValueInfo(type=rv_type, description=rv_description)
 
         return info
 
@@ -59,59 +51,3 @@ def _parse_bilingual_name(text: str) -> list[str]:
     if match:
         return [match.group(1).strip(), match.group(2).strip()]
     return [text.strip()]
-
-
-def _parse_parameters(text: str) -> list[ParameterInfo]:
-    """Parse parameter descriptions from text."""
-    params: list[ParameterInfo] = []
-    lines = text.strip().split("\n")
-
-    current_name = ""
-    current_desc_parts: list[str] = []
-    current_type = ""
-    current_required = False
-
-    for line in lines:
-        line = line.strip()
-        if not line:
-            continue
-
-        # Check if line starts a new parameter (e.g., "ParamName - description" or "ParamName | type")
-        param_match = re.match(r"^<(.+?)>\s*[-–]\s*(.*)", line)
-        if param_match:
-            # Save previous parameter
-            if current_name:
-                params.append(
-                    ParameterInfo(
-                        name=current_name,
-                        type=current_type,
-                        description="\n".join(current_desc_parts).strip(),
-                        required=current_required,
-                    )
-                )
-
-            current_name = param_match.group(1).strip()
-            current_desc_parts = [param_match.group(2).strip()] if param_match.group(2) else []
-            current_type = ""
-            current_required = False
-        else:
-            # Try simple "Name - Description" format
-            simple_match = re.match(r"^(\w+)\s*[-–]\s*(.*)", line)
-            if simple_match and not current_name:
-                current_name = simple_match.group(1).strip()
-                current_desc_parts = [simple_match.group(2).strip()] if simple_match.group(2) else []
-            elif current_name:
-                current_desc_parts.append(line)
-
-    # Save last parameter
-    if current_name:
-        params.append(
-            ParameterInfo(
-                name=current_name,
-                type=current_type,
-                description="\n".join(current_desc_parts).strip(),
-                required=current_required,
-            )
-        )
-
-    return params

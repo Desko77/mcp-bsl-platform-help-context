@@ -24,6 +24,7 @@ def method_info_to_entity(info: MethodInfo) -> MethodDefinition:
         description=info.description,
         return_type=info.return_value.type if info.return_value else "",
         signatures=[signature_info_to_entity(s) for s in info.signatures],
+        return_description=info.return_value.description if info.return_value else "",
     )
 
 
@@ -51,6 +52,7 @@ def signature_info_to_entity(info: SignatureInfo) -> Signature:
         name=info.name,
         parameters=[parameter_info_to_entity(p) for p in info.parameters],
         description=info.description,
+        syntax=info.syntax,
     )
 
 

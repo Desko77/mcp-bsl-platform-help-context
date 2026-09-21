@@ -11,6 +11,8 @@ from mcp_bsl_context.infrastructure.embeddings.provider import EmbeddingProvider
 from mcp_bsl_context.infrastructure.embeddings.reranker import RankedResult, Reranker
 from mcp_bsl_context.infrastructure.search.semantic_engine import (
     COLLECTION_NAME,
+    INDEX_FORMAT_VERSION,
+    META_COLLECTION_NAME,
     SemanticSearchEngine,
 )
 
@@ -155,6 +157,33 @@ class TestSemanticSearchEngineIndex:
 
     def test_has_collection_after_index(self, engine_no_reranker):
         assert engine_no_reranker._has_collection()
+
+    def test_index_format_marker_is_written(self, engine_no_reranker):
+        assert engine_no_reranker._stored_index_format() == INDEX_FORMAT_VERSION
+        assert engine_no_reranker._has_current_index()
+
+    def test_persisted_index_is_reused(self, tmp_path, fake_storage):
+        path = str(tmp_path / "qdrant")
+        first = SemanticSearchEngine(FakeEmbeddingProvider(dim=4), path)
+        first.ensure_ready(fake_storage)
+        first._client.close()
+
+        second = SemanticSearchEngine(FakeEmbeddingProvider(dim=4), path)
+        second._build_index = lambda storage: pytest.fail("index must be reused")
+        second.ensure_ready(fake_storage)
+        assert len(second.search("Сообщить", fake_storage, limit=5)) > 0
+
+    def test_index_without_format_marker_is_rebuilt(self, tmp_path, fake_storage):
+        path = str(tmp_path / "qdrant")
+        first = SemanticSearchEngine(FakeEmbeddingProvider(dim=4), path)
+        first.ensure_ready(fake_storage)
+        first._client.delete_collection(META_COLLECTION_NAME)
+        first._client.close()
+
+        second = SemanticSearchEngine(FakeEmbeddingProvider(dim=4), path)
+        assert not second._has_current_index()
+        second.ensure_ready(fake_storage)
+        assert second._stored_index_format() == INDEX_FORMAT_VERSION
 
 
 class TestSemanticSearchWithReranker:

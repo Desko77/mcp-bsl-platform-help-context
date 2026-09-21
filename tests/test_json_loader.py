@@ -102,3 +102,27 @@ class TestJsonContextLoader:
         assert len(methods[0].signatures) == 1
         assert methods[0].signatures[0].parameters[0].name == "p1"
         assert methods[0].signatures[0].parameters[0].required is True
+
+    def test_load_signature_syntax_and_return_description(self, tmp_path):
+        data = [{
+            "name": "Найти",
+            "description": "",
+            "return_type": "Строка",
+            "return_description": "Найденная строка.",
+            "signatures": [{
+                "name": "Найти",
+                "description": "",
+                "syntax": "Найти(<Значение>)",
+                "parameters": [
+                    {"name": "Значение", "type": "Произвольный", "description": "Искомое значение"}
+                ],
+            }],
+        }]
+        (tmp_path / "methods.json").write_text(json.dumps(data), encoding="utf-8")
+
+        loader = JsonContextLoader()
+        methods = loader.load_methods(tmp_path / "methods.json")
+        assert methods[0].return_description == "Найденная строка."
+        assert methods[0].signatures[0].syntax == "Найти(<Значение>)"
+        # requirement not stated in the source stays unknown
+        assert methods[0].signatures[0].parameters[0].required is None

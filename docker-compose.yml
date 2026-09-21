@@ -22,6 +22,9 @@ services:
       MCP_BSL_PORT: "8080"
       MCP_BSL_DATA_SOURCE: hbk
       MCP_BSL_PLATFORM_PATH: /data/platform
+      # Образ без локальных ML-моделей: поиск по умолчанию keyword.
+      # Для semantic/hybrid задайте внешний embedding API в config.yml (см. config.example.yml)
+      MCP_BSL_SEARCH_DEFAULT_MODE: keyword
       # MCP_BSL_VERBOSE: "true"  # Uncomment for debug logging
     volumes:
       # Укажите путь к каталогу установки платформы 1С, содержащему shcntx_ru.hbk

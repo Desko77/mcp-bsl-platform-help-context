@@ -68,9 +68,9 @@ class _LazySemanticState:
                 self._do_init()
             except Exception as exc:
                 self._init_error = (
-                    f"Failed to initialize semantic search: {exc}. "
-                    "Use mode='keyword' or install dependencies: "
-                    "pip install 'mcp-bsl-context[local]'"
+                    f"Семантический поиск недоступен: {exc}. "
+                    "Установите локальные модели (pip install 'mcp-bsl-platform-help-context[local]') "
+                    "или задайте внешний провайдер эмбеддингов в конфигурации."
                 )
                 self._initialized = True
                 raise RuntimeError(self._init_error) from exc
@@ -198,8 +198,8 @@ def create_server(config: AppConfig):
         if effective_mode not in VALID_MODES:
             return formatter.format_error(
                 ValueError(
-                    f"Invalid search mode: '{effective_mode}'. "
-                    f"Use: {', '.join(sorted(VALID_MODES))}"
+                    f"Недопустимый режим поиска: '{effective_mode}'. "
+                    f"Допустимые: {', '.join(sorted(VALID_MODES))}"
                 )
             )
 
@@ -207,25 +207,36 @@ def create_server(config: AppConfig):
         if limit is not None:
             effective_limit = max(MIN_LIMIT, min(limit, MAX_LIMIT))
 
+        fallback_note = ""
         try:
             if effective_mode == "keyword":
                 results = service.search_all(query, type, effective_limit)
-            elif effective_mode == "semantic":
-                results = semantic_state.semantic_search(
-                    query, limit=effective_limit, type_filter=type
-                )
-            else:  # hybrid
-                results = semantic_state.hybrid_search(
-                    query, limit=effective_limit, type_filter=type
-                )
+            else:
+                try:
+                    if effective_mode == "semantic":
+                        results = semantic_state.semantic_search(
+                            query, limit=effective_limit, type_filter=type
+                        )
+                    else:  # hybrid
+                        results = semantic_state.hybrid_search(
+                            query, limit=effective_limit, type_filter=type
+                        )
+                except RuntimeError as exc:
+                    # No local models and no embedding API: keyword search still answers
+                    logger.warning(
+                        "Search mode '%s' unavailable, keyword search used: %s", effective_mode, exc
+                    )
+                    results = service.search_all(query, type, effective_limit)
+                    fallback_note = (
+                        f"*Режим '{effective_mode}' недоступен, выполнен keyword-поиск. {exc}*\n\n"
+                    )
             return (
                 formatter.format_query(query)
+                + fallback_note
                 + formatter.format_search_results(results)
             )
         except DomainException as e:
             return formatter.format_error(e)
-        except RuntimeError as e:
-            return f"**Error:** {e}"
 
     @mcp.tool()
     def info(name: str, type: str) -> str:
@@ -299,21 +310,21 @@ def create_server(config: AppConfig):
         parts: list[str] = []
 
         if version_info.active_version:
-            parts.append(f"**Active version:** {version_info.active_version}")
+            parts.append(f"**Активная версия:** {version_info.active_version}")
         else:
-            parts.append("**Active version:** unknown")
+            parts.append("**Активная версия:** неизвестна")
 
         if version_info.active_hbk_path and str(version_info.active_hbk_path):
-            parts.append(f"**HBK path:** `{version_info.active_hbk_path}`")
+            parts.append(f"**Файл HBK:** `{version_info.active_hbk_path}`")
 
         if version_info.available_versions:
             sorted_versions = sorted(version_info.available_versions, reverse=True)
-            parts.append(f"\n**Available versions ({len(sorted_versions)}):**")
+            parts.append(f"\n**Доступные версии ({len(sorted_versions)}):**")
             for v in sorted_versions:
-                marker = " **(active)**" if v == version_info.active_version else ""
+                marker = " **(активная)**" if v == version_info.active_version else ""
                 parts.append(f"- {v}{marker}")
         else:
-            parts.append("\n*Single-version mode — no other versions discovered.*")
+            parts.append("\n*Режим одной версии: другие версии платформы не обнаружены.*")
 
         return "\n".join(parts)
 

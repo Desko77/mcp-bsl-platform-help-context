@@ -46,7 +46,7 @@ class TestEntities:
         )
         assert len(s.parameters) == 2
         assert s.parameters[0].required is True
-        assert s.parameters[1].required is False
+        assert s.parameters[1].required is None
 
 
 class TestApiType:

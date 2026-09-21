@@ -13,7 +13,7 @@ pip install -e .              # Install in dev mode
 pip install -e ".[dev]"       # Install with pytest
 pip install -e ".[local]"     # Install with local embedding models (sentence-transformers, torch)
 
-pytest -v                     # Run all tests (306)
+pytest -v                     # Run all tests (359)
 pytest -v tests/test_search_engine.py           # Single test module
 pytest -v tests/test_search_engine.py::test_name  # Single test
 
@@ -56,14 +56,14 @@ Layered DDD structure: `config.py` -> `domain` -> `infrastructure` -> `presentat
 - `exceptions.py`: `DomainException` hierarchy
 
 **Infrastructure** (`infrastructure/`):
-- `hbk/` — binary HBK file parsing: `container_reader.py` -> `content_reader.py` -> `context_reader.py` -> `pages_visitor.py`. Sub-packages: `toc/`, `parsers/`
+- `hbk/` — binary HBK file parsing: `container_reader.py` -> `content_reader.py` -> `context_reader.py` -> `pages_visitor.py`. Sub-packages: `toc/`, `parsers/` (`html_handler.py` splits a page into blocks and rubric items, `params.py` parses syntax variants, parameters, `Тип:` and `Значение по умолчанию:` lines)
 - `json_loader/` — alternative data source from pre-exported JSON files
 - **`docinfo/`** — bundled markdown docs shipped as package data (`strict-types.md`, `guideline.md`)
 - `search/` — `engine.py` (keyword `SimpleSearchEngine`), `semantic_engine.py` (Qdrant + embeddings), `hybrid_engine.py` (RRF merge + reranker), `indexes.py`, `strategies.py`
 - `embeddings/` — `provider.py` (`EmbeddingProvider` ABC, local/API), `reranker.py` (`Reranker` ABC, local/API), `document_builder.py` (entities -> embeddable text + Qdrant payload)
 - `storage/` — `storage.py` (thread-safe lazy-loading), `repository.py` (facade), `loader.py`, `mapper.py`, `version_discovery.py` (`VersionDiscovery`)
 
-**Presentation** (`presentation/formatter.py`) — `MarkdownFormatter` for MCP tool output.
+**Presentation** (`presentation/formatter.py`) — `MarkdownFormatter` for MCP tool output (Russian headings; syntax line, parameter markers `(обязательный)`/`(необязательный)`, type, default value, return value).
 
 **Server** (`server.py`) — `create_server(config)` wires dependencies, discovers platform versions, registers 9 MCP tools (6 platform API + 3 docs). `_LazySemanticState` defers ML model loading until first semantic/hybrid search request.
 
@@ -95,7 +95,10 @@ The `search` tool supports three modes via the `mode` parameter (default from `c
 - **Bilingual API names**: supports both Russian (PascalCase) and English; search is case-insensitive with CamelCase word splitting
 - **HBK format**: proprietary binary container with ZIP-compressed TOC (bracket format) and ZIP archive of HTML docs; content encoded UTF-16LE
 - **HBK version differences**: 8.3.27+ uses multi-page data chains in container, TOC language codes `"ru"`/`"en"` (quoted) instead of `"1"`/`"2"`, `"#"` for section headers, multiple root nodes (10), CSS classes `V8SH_heading`/`V8SH_chapter` in HTML. TOC paths have leading `/` but ZIP entries don't — stripped in `content_reader.py`.
+- **HBK page markup**: most content is bare text between tags (the syntax line after `Синтаксис:`, `Тип: X.<br>описание` after a parameter rubric or `Возвращаемое значение:`), so `html_handler.py` walks text nodes, not only elements. Parameter rubrics are `div.V8SH_rubric` with `<Имя> (обязательный|необязательный)`; 8.3.10 wraps chapter titles in `div.V8SH_chapter`, 8.3.24+ in `p.V8SH_chapter`; content after the trailing `<HR>` is an external link and is dropped. Type pages have no `V8SH_heading` and are named after the TOC.
+- **Parameter requirement is tri-state**: `required` is `True`/`False` when the help states it and `None` otherwise (JSON sources without the field); the formatter prints a marker only for `True`/`False`.
 - **Docker**: multi-stage build, non-root `mcpuser`, Qdrant data and model cache mounted on host for persistence. GPU Dockerfile uses venv (not `--prefix`) to avoid Ubuntu system pip issues with pyproject.toml packages.
-- **Qdrant embedded**: vector DB runs in-process, persists to `storage.qdrant_path`. Deterministic UUID5 point IDs ensure stability across restarts.
+- **Qdrant embedded**: vector DB runs in-process, persists to `storage.qdrant_path`. Deterministic UUID5 point IDs ensure stability across restarts. `INDEX_FORMAT_VERSION` is stored in the one-point collection `platform_context_meta`; a persisted index with another format is rebuilt on the first semantic/hybrid request (bump the constant when `DocumentBuilder` output changes).
 - **Host binding**: `MCP_BSL_HOST` env var / `server.host` config controls bind address. Docker sets `0.0.0.0`; local default is `127.0.0.1`.
+- **Search fallback**: when `semantic`/`hybrid` initialization fails (no `[local]` extras, no embedding API), `search` runs keyword search and prefixes the answer with a note. The CPU compose service sets `MCP_BSL_SEARCH_DEFAULT_MODE: keyword`; `MCP_BSL_CONFIG` (or `-c`) points to a YAML file, and `docker-entrypoint.sh` passes `/home/mcpuser/config.yml` automatically when mounted.
 - **Bundled docs**: `DocsInfoService` loads `strict-types.md` and `guideline.md` from `docinfo/` package or custom paths via `docs.strict_types_path` / `docs.guideline_path` config. Env vars: `MCP_BSL_DOCS_STRICT_TYPES_PATH`, `MCP_BSL_DOCS_GUIDELINE_PATH`.

@@ -5,7 +5,7 @@ from __future__ import annotations
 import re
 
 from ..models import ObjectInfo
-from .base import PageParser
+from .base import PageParser, page_description
 from .html_handler import ParsedPage
 
 
@@ -25,7 +25,7 @@ class ObjectPageParser(PageParser):
             info.name_ru = page.title
 
         # Description
-        info.description = page.get_block_content("description")
+        info.description = page_description(page)
 
         return info
 

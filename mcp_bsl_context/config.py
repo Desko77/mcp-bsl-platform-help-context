@@ -89,6 +89,7 @@ _ENV_MAPPING: dict[str, tuple[str, str]] = {
     "MCP_BSL_DATA_SOURCE": ("platform", "data_source"),
     "MCP_BSL_JSON_PATH": ("platform", "json_path"),
     "MCP_BSL_VERBOSE": ("server", "verbose"),
+    "MCP_BSL_SEARCH_DEFAULT_MODE": ("search", "default_mode"),
     "MCP_BSL_DOCS_STRICT_TYPES_PATH": ("docs", "strict_types_path"),
     "MCP_BSL_DOCS_GUIDELINE_PATH": ("docs", "guideline_path"),
 }

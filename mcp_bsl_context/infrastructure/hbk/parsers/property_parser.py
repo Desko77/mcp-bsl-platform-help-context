@@ -7,6 +7,7 @@ import re
 from ..models import PropertyInfo
 from .base import PageParser
 from .html_handler import ParsedPage
+from .params import split_type_prefix
 
 
 class PropertyPageParser(PageParser):
@@ -24,19 +25,22 @@ class PropertyPageParser(PageParser):
         elif page.title:
             info.name_ru = page.title
 
-        # Description
-        info.description = page.get_block_content("description")
+        # Description starts with the type line "Тип: Строка." followed by the text
+        property_type, description = split_type_prefix(page.get_block_content("description"))
+        deprecated = [block.content for block in page.get_blocks("deprecated") if block.content]
+        info.description = "\n".join(deprecated + ([description] if description else []))
+        info.property_type = property_type
 
-        # Type (from value or description)
+        # Type (explicit value block wins over the description prefix)
         value_content = page.get_block_content("value")
         if value_content:
             info.property_type = value_content
 
-        # Check for read-only marker
-        access_content = page.get_block_content("availability")
+        # Read-only marker: "Использование: Только чтение."
+        access_content = page.get_block_content("usage") or page.get_block_content("availability")
         if access_content:
             lower = access_content.lower()
-            info.is_read_only = "только чтение" in lower or "read only" in lower
+            info.is_read_only = "только чтение" in lower or "read only" in lower or "read-only" in lower
 
         return info
 

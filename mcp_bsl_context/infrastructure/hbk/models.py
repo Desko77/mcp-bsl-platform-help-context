@@ -39,7 +39,7 @@ class ParameterInfo:
     name: str = ""
     type: str = ""
     description: str = ""
-    required: bool = False
+    required: bool | None = None
     default_value: str | None = None
 
 
@@ -54,6 +54,7 @@ class SignatureInfo:
     name: str = ""
     parameters: list[ParameterInfo] = field(default_factory=list)
     description: str = ""
+    syntax: str = ""
 
 
 @dataclass

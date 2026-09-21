@@ -35,7 +35,7 @@ class ContextSearchService:
         limit: int | None = None,
     ) -> list[Definition]:
         if not query or not query.strip():
-            raise InvalidSearchQueryException("Search query cannot be empty")
+            raise InvalidSearchQueryException("Поисковый запрос не может быть пустым")
 
         api_type = None
         if type_str:
@@ -50,13 +50,13 @@ class ContextSearchService:
 
     def get_info(self, name: str, type_str: str) -> Definition:
         if not name or not name.strip():
-            raise InvalidSearchQueryException("Name cannot be empty")
+            raise InvalidSearchQueryException("Имя не может быть пустым")
         if not type_str or not type_str.strip():
-            raise InvalidSearchQueryException("Type cannot be empty")
+            raise InvalidSearchQueryException("Тип элемента не может быть пустым")
 
         api_type = ApiType.from_string(type_str)
         if api_type is None:
-            raise InvalidSearchQueryException(f"Unknown type: {type_str}")
+            raise InvalidSearchQueryException(f"Неизвестный тип элемента: {type_str}")
 
         result: Definition | None = None
         if api_type == ApiType.TYPE:
@@ -68,7 +68,7 @@ class ContextSearchService:
 
         if result is None:
             raise PlatformTypeNotFoundException(
-                f"{api_type.get_display_name()} '{name}' not found"
+                f"{api_type.get_display_name()} '{name}' не найден"
             )
         return result
 
@@ -76,13 +76,13 @@ class ContextSearchService:
         self, type_name: str, member_name: str
     ) -> Definition:
         if not type_name or not type_name.strip():
-            raise InvalidSearchQueryException("Type name cannot be empty")
+            raise InvalidSearchQueryException("Имя типа не может быть пустым")
         if not member_name or not member_name.strip():
-            raise InvalidSearchQueryException("Member name cannot be empty")
+            raise InvalidSearchQueryException("Имя члена типа не может быть пустым")
 
         type_def = self._repository.find_type(type_name.strip())
         if type_def is None:
-            raise PlatformTypeNotFoundException(f"Type '{type_name}' not found")
+            raise PlatformTypeNotFoundException(f"Тип '{type_name}' не найден")
 
         member_lower = member_name.strip().lower()
         for method in type_def.methods:
@@ -93,16 +93,16 @@ class ContextSearchService:
                 return prop
 
         raise TypeMemberNotFoundException(
-            f"Member '{member_name}' not found in type '{type_name}'"
+            f"У типа '{type_name}' нет метода или свойства '{member_name}'"
         )
 
     def find_type_members(self, type_name: str) -> list[Definition]:
         if not type_name or not type_name.strip():
-            raise InvalidSearchQueryException("Type name cannot be empty")
+            raise InvalidSearchQueryException("Имя типа не может быть пустым")
 
         type_def = self._repository.find_type(type_name.strip())
         if type_def is None:
-            raise PlatformTypeNotFoundException(f"Type '{type_name}' not found")
+            raise PlatformTypeNotFoundException(f"Тип '{type_name}' не найден")
 
         members: list[Definition] = []
         members.extend(type_def.methods)
@@ -111,10 +111,10 @@ class ContextSearchService:
 
     def find_constructors(self, type_name: str) -> list[Signature]:
         if not type_name or not type_name.strip():
-            raise InvalidSearchQueryException("Type name cannot be empty")
+            raise InvalidSearchQueryException("Имя типа не может быть пустым")
 
         type_def = self._repository.find_type(type_name.strip())
         if type_def is None:
-            raise PlatformTypeNotFoundException(f"Type '{type_name}' not found")
+            raise PlatformTypeNotFoundException(f"Тип '{type_name}' не найден")
 
         return type_def.constructors

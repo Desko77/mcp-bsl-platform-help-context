@@ -11,7 +11,7 @@ class ParameterDefinition:
     name: str
     type: str
     description: str
-    required: bool = False
+    required: bool | None = None
     default_value: str | None = None
 
 
@@ -20,6 +20,7 @@ class Signature:
     name: str
     parameters: list[ParameterDefinition]
     description: str
+    syntax: str = ""
 
 
 @dataclass(frozen=True)
@@ -28,6 +29,7 @@ class MethodDefinition:
     description: str
     return_type: str = ""
     signatures: list[Signature] = field(default_factory=list)
+    return_description: str = ""
 
 
 @dataclass(frozen=True)

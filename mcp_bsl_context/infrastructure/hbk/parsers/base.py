@@ -8,6 +8,16 @@ from typing import Any
 from .html_handler import ParsedPage, parse_html_page
 
 
+def page_description(page: ParsedPage) -> str:
+    """Description of the page, prefixed with its deprecation banners
+    ("Не рекомендуется использовать, начиная с версии X. Рекомендуется использовать: Y")."""
+    parts = [block.content for block in page.get_blocks("deprecated") if block.content]
+    description = page.get_block_content("description")
+    if description:
+        parts.append(description)
+    return "\n".join(parts)
+
+
 class PageParser(ABC):
     """Base class for parsing HTML documentation pages into domain models."""
 

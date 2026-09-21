@@ -92,6 +92,7 @@ class JsonContextLoader:
             description=data.get("description", ""),
             return_type=data.get("return_type", data.get("returnType", "")),
             signatures=[self._parse_signature(s) for s in data.get("signatures", [])],
+            return_description=data.get("return_description", data.get("returnDescription", "")),
         )
 
     def _parse_property(self, data: dict) -> PropertyDefinition:
@@ -116,6 +117,7 @@ class JsonContextLoader:
             name=data.get("name", ""),
             parameters=[self._parse_parameter(p) for p in data.get("parameters", [])],
             description=data.get("description", ""),
+            syntax=data.get("syntax", ""),
         )
 
     @staticmethod
@@ -124,6 +126,6 @@ class JsonContextLoader:
             name=data.get("name", ""),
             type=data.get("type", ""),
             description=data.get("description", ""),
-            required=data.get("required", False),
+            required=data.get("required"),
             default_value=data.get("default_value", data.get("defaultValue")),
         )

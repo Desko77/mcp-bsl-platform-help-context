@@ -13,3 +13,4 @@ venv/
 data/
 mcp-data/
 config.yml
+.qdrant_test/

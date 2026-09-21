@@ -17,6 +17,11 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 COLLECTION_NAME = "platform_context"
+META_COLLECTION_NAME = "platform_context_meta"
+META_POINT_ID = 1
+# Bump when the indexed text (DocumentBuilder) or payload changes: a persisted
+# index with another format is rebuilt on the next startup
+INDEX_FORMAT_VERSION = 2
 UPSERT_BATCH_SIZE = 100
 
 
@@ -65,7 +70,7 @@ class SemanticSearchEngine:
                 return
             storage.ensure_loaded()
             self._build_lookup(storage)
-            if force_reindex or not self._has_collection():
+            if force_reindex or not self._has_current_index():
                 self._build_index(storage)
             self._ready = True
 
@@ -139,6 +144,42 @@ class SemanticSearchEngine:
     # Internal helpers
     # ------------------------------------------------------------------
 
+    def _has_current_index(self) -> bool:
+        """Check that the index exists and was built with the current format."""
+        if not self._has_collection():
+            return False
+        if self._stored_index_format() != INDEX_FORMAT_VERSION:
+            logger.info("Semantic index has an outdated format, rebuilding")
+            return False
+        return True
+
+    def _stored_index_format(self) -> int | None:
+        """Read the index format marker written by _build_index."""
+        try:
+            points = self._client.retrieve(META_COLLECTION_NAME, ids=[META_POINT_ID])
+        except Exception:
+            return None
+        if not points or not points[0].payload:
+            return None
+        return points[0].payload.get("index_format")
+
+    def _write_index_format(self) -> None:
+        """Store the index format marker in a separate one-point collection."""
+        from qdrant_client.models import Distance, PointStruct, VectorParams
+
+        try:
+            self._client.delete_collection(META_COLLECTION_NAME)
+        except Exception:
+            pass
+        self._client.create_collection(
+            collection_name=META_COLLECTION_NAME,
+            vectors_config=VectorParams(size=1, distance=Distance.DOT),
+        )
+        self._client.upsert(
+            collection_name=META_COLLECTION_NAME,
+            points=[PointStruct(id=META_POINT_ID, vector=[1.0], payload={"index_format": INDEX_FORMAT_VERSION})],
+        )
+
     def _has_collection(self) -> bool:
         """Check if the Qdrant collection exists and contains points."""
         try:
@@ -191,6 +232,7 @@ class SemanticSearchEngine:
                 collection_name=COLLECTION_NAME, points=points
             )
 
+        self._write_index_format()
         logger.info("Semantic index built: %d documents indexed", len(docs))
 
     def _build_lookup(self, storage: PlatformContextStorage) -> None:

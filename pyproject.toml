@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "mcp-bsl-platform-help-context"
-version = "0.1.0"
+version = "1.0.0"
 description = "MCP server for 1C:Enterprise BSL platform context — search and navigate platform API documentation"
 requires-python = ">=3.10"
 license = {text = "MIT"}
@@ -13,7 +13,7 @@ authors = [
 ]
 keywords = ["mcp", "1c", "bsl", "platform", "context", "ai"]
 classifiers = [
-    "Development Status :: 3 - Alpha",
+    "Development Status :: 5 - Production/Stable",
     "Intended Audience :: Developers",
     "License :: OSI Approved :: MIT License",
     "Programming Language :: Python :: 3",

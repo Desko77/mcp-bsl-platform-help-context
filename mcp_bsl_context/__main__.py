@@ -17,7 +17,8 @@ def main() -> None:
     @click.option(
         "--config", "-c",
         default=None,
-        help="Path to YAML config file",
+        envvar="MCP_BSL_CONFIG",
+        help="Path to YAML config file (env: MCP_BSL_CONFIG)",
     )
     @click.option(
         "--platform-path", "-p",
