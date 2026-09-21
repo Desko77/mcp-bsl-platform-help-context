@@ -396,6 +396,10 @@ pytest -v tests/test_search_engine.py::test_name  # Один тест
 
 Альтернативно можно использовать pre-exported JSON (через [platform-context-exporter](https://github.com/alkoleft/platform-context-exporter)).
 
+## История изменений
+
+См. [CHANGELOG.md](CHANGELOG.md).
+
 ## Благодарности
 
 - [alkoleft/mcp-bsl-platform-context](https://github.com/alkoleft/mcp-bsl-platform-context) — оригинальный Kotlin-проект
